@@ -1,9 +1,10 @@
-{ lib
-, pkgs
-, waybar
-, version
-}:
-let
+{
+  lib,
+  pkgs,
+  waybar,
+  version,
+  versionCheckHook,
+}: let
   libcava = rec {
     version = "0.10.3";
     src = pkgs.fetchFromGitHub {
@@ -13,8 +14,7 @@ let
       hash = "sha256-ZDFbI69ECsUTjbhlw2kHRufZbQMu+FQSMmncCJ5pagg=";
     };
   };
-in
-(waybar.overrideAttrs (
+in (waybar.overrideAttrs (
   oldAttrs: {
     inherit version;
 
@@ -28,9 +28,11 @@ in
     # downstream patch should not affect upstream
     patches = [];
 
-    buildInputs = (builtins.filter (p: p.pname != "wireplumber") oldAttrs.buildInputs) ++ [
+    buildInputs =
+      (builtins.filter (p: p.pname != "wireplumber") oldAttrs.buildInputs)
+      ++ [
         pkgs.wireplumber
-    ];
+      ];
 
     postUnpack = ''
       pushd "$sourceRoot"
@@ -38,5 +40,12 @@ in
       patchShebangs .
       popd
     '';
+
+    # disable version check
+    # because version attr is auto-generated in flake.nix,
+    # wich is always consistent with the source code.
+    nativeInstallCheckInputs =
+      lib.lists.remove versionCheckHook
+      oldAttrs.nativeInstallCheckInputs;
   }
 ))
